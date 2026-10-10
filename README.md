@@ -10,7 +10,8 @@ Aplicación de escritorio para abrir un `gamelist.xml`, consultar los datos de s
 - Antes de mover una ROM, comprueba que la ruta esté indicada y que el archivo exista. La confirmación se puede desactivar desde la casilla correspondiente.
 - Crea `back` junto al `gamelist.xml` abierto, independientemente del directorio desde el que se inicie la aplicación.
 - Si en `back` ya existe un archivo con el mismo nombre, añade un sufijo numérico para evitar sobrescribirlo.
-- Tras borrar los juegos que quieras, recarga la lista de juegos en Retrobat para que actualice el gamelist.xml. Se recomienda al final ir a las opciones de desarrollador de Retrobat y elegir "Limpiar listas de jjuegos y borrar medios no utilizados" para que elimine imágenes, manuales o videos de juegos borrados.
+- Se recomienda ejecutar el programa con Retrobat cerrado. Si no, tras borrar los juegos que quieras, recarga la lista de juegos en Retrobat para que actualice el gamelist.xml. 
+- Se recomienda tras acabar ir a las opciones de desarrollador de Retrobat y elegir "Limpiar listas de jjuegos y borrar medios no utilizados" para que elimine imágenes, manuales o videos de juegos borrados.
 
 
 ## Requisitos
@@ -77,7 +78,8 @@ A desktop application for opening a `gamelist.xml`, viewing game information, an
 - Before moving a ROM, checks that its path is specified and that the file exists. You can disable the confirmation prompt using the checkbox.
 - Creates `back` next to the opened `gamelist.xml`, regardless of the directory from which the application is launched.
 - If `back` already contains a file with the same name, adds a numeric suffix to avoid overwriting it.
-- After moving the games you want, reload the game list in RetroBat to update `gamelist.xml`. It is also recommended to open RetroBat's developer options and select **Clean game lists and delete unused media** to remove images, manuals, or videos for removed games.
+- It is recommended to close RetroBat before running this program. If RetroBat is left open, reload the game list after moving the games you want so it can update `gamelist.xml`.
+- When you are finished, it is recommended to open RetroBat's developer options and select **Clean game lists and delete unused media** to remove images, manuals, or videos belonging to removed games.
 
 ## Requirements
 
