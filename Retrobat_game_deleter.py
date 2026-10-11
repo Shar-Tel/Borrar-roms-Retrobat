@@ -4,7 +4,7 @@
 #Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
 #Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
 #Está pensado para ser usado en los directorios de Roms de Retrobat.
-#Versión 1.0.0, 11-10-2026
+#Versión 1.1.0, 11-10-2026
 
 import shutil
 import sys
@@ -39,6 +39,9 @@ TEXTS = {
         "window_title": "Gestor de juegos",
         "file_menu": "Archivo",
         "language_menu": "Idioma",
+        "about_menu": "Acerca de",
+        "about_title": "Acerca del Gestor de juegos",
+        "about_text": "Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión 1.1.0",
         "open_xml": "Abrir XML...",
         "exit": "Salir",
         "spanish": "Español",
@@ -74,6 +77,9 @@ TEXTS = {
         "window_title": "Game Manager",
         "file_menu": "File",
         "language_menu": "Language",
+        "about_menu": "About",
+        "about_title": "About Game Manager",
+        "about_text": "ROM manager for RetroBat.\nAllows easy deletion of games from RetroBat.\n\nCreated by: Ximo León\nVersion 1.1.0",
         "open_xml": "Open XML...",
         "exit": "Exit",
         "spanish": "Español",
@@ -231,6 +237,9 @@ class GameListWindow(QMainWindow):
         self.file_menu.addAction(self.exit_action)
 
         self.language_menu = self.menuBar().addMenu(self.t("language_menu"))
+        self.about_action = QAction(self.t("about_menu"), self)
+        self.about_action.triggered.connect(self.show_about)
+        self.menuBar().addAction(self.about_action)
         self.language_actions: dict[str, QAction] = {}
         # El grupo mantiene una única opción marcada; selected conserva el idioma
         # correspondiente a cada acción cuando la señal se ejecuta más tarde.
@@ -347,6 +356,7 @@ class GameListWindow(QMainWindow):
         self.language_actions[language].setChecked(True)
         self.file_menu.setTitle(self.t("file_menu"))
         self.language_menu.setTitle(self.t("language_menu"))
+        self.about_action.setText(self.t("about_menu"))
         self.open_action.setText(self.t("open_xml"))
         self.exit_action.setText(self.t("exit"))
         self.previous_button.setText(self.t("previous"))
@@ -368,6 +378,9 @@ class GameListWindow(QMainWindow):
             self.clear_game_details()
             self.game_title.setText(self.t(self.empty_state))
         self.set_file_window_title()
+
+    def show_about(self) -> None:
+        QMessageBox.about(self, self.t("about_title"), self.t("about_text"))
 
     def set_file_window_title(self) -> None:
         # Añade el nombre del XML cuando ya se ha cargado una lista.
