@@ -1,7 +1,7 @@
 # Gestor de juegos para RetroBat
 
-Aplicación de escritorio para abrir un `gamelist.xml`, consultar los datos de sus juegos y mover archivos ROM a una carpeta de respaldo llamada `back`.
-
+Aplicación de escritorio para abrir un `gamelist.xml`, consultar los datos de sus juegos y mover archivos ROM a una carpeta de respaldo llamada `back`. Permite borrar juegos más rápido que desde el interfaz de Retrobat, muy útil para hacer limpieza de romsets con múltiples versiones de juegos o juegos no deseados.
+Creado con la asistencia de GitHub Copilot.
 ## Funciones
 
 - Muestra el nombre, la descripción, el idioma, la región y la imagen asociada al juego seleccionado.
@@ -10,8 +10,7 @@ Aplicación de escritorio para abrir un `gamelist.xml`, consultar los datos de s
 - Antes de mover una ROM, comprueba que la ruta esté indicada y que el archivo exista. La confirmación se puede desactivar desde la casilla correspondiente.
 - Crea `back` junto al `gamelist.xml` abierto, independientemente del directorio desde el que se inicie la aplicación.
 - Si en `back` ya existe un archivo con el mismo nombre, añade un sufijo numérico para evitar sobrescribirlo.
-- Se recomienda ejecutar el programa con Retrobat cerrado. Si no, tras borrar los juegos que quieras, recarga la lista de juegos en Retrobat para que actualice el gamelist.xml. 
-- Se recomienda tras acabar ir a las opciones de desarrollador de Retrobat y elegir "Limpiar listas de jjuegos y borrar medios no utilizados" para que elimine imágenes, manuales o videos de juegos borrados.
+- Se recomienda tras acabar de borrar los juegos deseados ir a las opciones de desarrollador de Retrobat y elegir "Limpiar listas de jjuegos y borrar medios no utilizados" para que elimine los juegos del gamelist.xml y también las imágenes, manuales o videos de juegos borrados.
 
 
 ## Requisitos
@@ -66,24 +65,25 @@ Solo aparecen en la lista los juegos cuyo `<path>` apunta a un archivo existente
 
 ## Qué hace el botón de borrado
 
-El botón **Borrar archivo** no elimina la ROM: la mueve a `back`. El programa no modifica ni elimina la entrada correspondiente del XML. Por eso, si vuelves a abrir la lista, el juego seguirá apareciendo, aunque su ROM ya no estará en la ruta original.
+El botón **Borrar archivo** no elimina la ROM: la mueve a `back`. El programa no modifica ni elimina la entrada correspondiente del XML, eso lo hará Retrobat.
 
 ---
 
 # RetroBat Game Manager
 
-A desktop application for opening a `gamelist.xml`, viewing game information, and moving ROM files to a backup folder named `back`.
+A desktop application for opening a `gamelist.xml`, checking the data of its games, and moving ROM files to a backup folder named `back`. It allows you to remove games faster than from the RetroBat interface, which is especially useful for cleaning ROM sets with multiple versions of the same game or unwanted titles.
+Created with GitHub Copilot.
 
 ## Features
 
 - Shows the selected game's name, description, language, region, and associated image.
 - Lets you browse the list using the **Previous** and **Next** buttons.
-- Provides a Spanish and English interface. The initial language is selected based on the system language: Spanish for Spanish-language Windows, English otherwise.
-- Before moving a ROM, checks that its path is specified and that the file exists. You can disable the confirmation prompt using the checkbox.
+- Offers a Spanish and English interface. The initial language is chosen based on the system language.
+- Includes a language switch in the top menu.
+- Before moving a ROM, it checks that the path is set and that the file exists. The confirmation step can be disabled from the corresponding checkbox.
 - Creates `back` next to the opened `gamelist.xml`, regardless of the directory from which the application is launched.
-- If `back` already contains a file with the same name, adds a numeric suffix to avoid overwriting it.
-- It is recommended to close RetroBat before running this program. If RetroBat is left open, reload the game list after moving the games you want so it can update `gamelist.xml`.
-- When you are finished, it is recommended to open RetroBat's developer options and select **Clean game lists and delete unused media** to remove images, manuals, or videos belonging to removed games.
+- If `back` already contains a file with the same name, it adds a numeric suffix to avoid overwriting it.
+- After finishing deleting the games you want, it is recommended to go to RetroBat's developer options and choose **Clean game lists and delete unused media** so it removes the games from `gamelist.xml` and also the images, manuals, or videos of deleted games.
 
 ## Requirements
 
@@ -109,7 +109,7 @@ When the application starts, select **File > Open XML...** and choose the `gamel
 
 The program looks for `<game>` elements directly inside the XML root element. For each game, it reads these fields:
 
-- `<name>`: displayed name. If missing, the program tries to use the file name from `<path>`.
+- `<name>`: displayed name. If missing, it tries to get it from the file name indicated by `<path>`.
 - `<path>`: path to the ROM file.
 - `<developer>`: game developer.
 - `<publisher>`: game publisher.
@@ -118,7 +118,7 @@ The program looks for `<game>` elements directly inside the XML root element. Fo
 - `<lang>`: language.
 - `<region>`: region.
 
-Relative `<path>` and `<image>` paths are resolved from the directory containing the XML. For example:
+Relative `<path>` and `<image>` paths are resolved from the folder where the XML is located. For example:
 
 Only games whose `<path>` points to an existing file are shown in the list.
 
@@ -135,6 +135,6 @@ Only games whose `<path>` points to an existing file are shown in the list.
 </gameList>
 ```
 
-## What the move button does
+## What the delete button does
 
-The **Move to back** button does not delete the ROM; it moves it to `back`. The program does not modify or remove the corresponding XML entry. Therefore, if you open the list again, the game will still appear even though its ROM is no longer at the original path.
+The **Delete file** button does not delete the ROM: it moves it to `back`. The program does not modify or remove the corresponding entry in the XML; RetroBat will do that.
