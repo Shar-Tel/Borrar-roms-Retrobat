@@ -13,8 +13,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QLocale, QThread, Qt, Signal
-from PySide6.QtGui import QAction, QActionGroup, QPixmap
+from PySide6.QtCore import QLocale, Qt, QThread, Signal
+from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -317,6 +317,13 @@ class GameListWindow(QMainWindow):
         self.confirm_checkbox.setChecked(True)
         self.delete_button = QPushButton(self.t("remove_file"))
         self.delete_button.clicked.connect(self.delete_game)
+        self.delete_shortcut_action = QAction(self)
+        self.delete_shortcut_action.setShortcut(QKeySequence(Qt.Key.Key_Delete))
+        self.delete_shortcut_action.setShortcutContext(
+            Qt.ShortcutContext.WindowShortcut
+        )
+        self.delete_shortcut_action.triggered.connect(self.delete_game)
+        self.addAction(self.delete_shortcut_action)
         actions.addWidget(self.confirm_checkbox)
         actions.addStretch()
         actions.addWidget(self.delete_button)
@@ -373,6 +380,7 @@ class GameListWindow(QMainWindow):
         self.previous_button.setEnabled(enabled)
         self.next_button.setEnabled(enabled)
         self.delete_button.setEnabled(enabled)
+        self.delete_shortcut_action.setEnabled(enabled)
 
     def open_xml(self) -> None:
         if self.load_thread is not None:
