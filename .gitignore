@@ -30,3 +30,4 @@ dist/
 .DS_Store
 Thumbs.db
 desktop.ini
+__pycache__/app.cpython-313.pyc

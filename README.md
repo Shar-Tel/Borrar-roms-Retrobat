@@ -40,6 +40,8 @@ El programa busca elementos `<game>` directamente dentro del elemento raíz del 
 
 - `<name>`: nombre mostrado. Si falta, intenta obtenerlo del nombre del archivo indicado por `<path>`.
 - `<path>`: ruta del archivo ROM.
+- `<developer>`: desarrolladora del juego.
+- `<publisher>`: distribuidora del juego.
 - `<image>`: ruta de la imagen, opcional.
 - `<desc>`: descripción.
 - `<lang>`: idioma.
@@ -107,6 +109,8 @@ The program looks for `<game>` elements directly inside the XML root element. Fo
 
 - `<name>`: displayed name. If missing, the program tries to use the file name from `<path>`.
 - `<path>`: path to the ROM file.
+- `<developer>`: game developer.
+- `<publisher>`: game publisher.
 - `<image>`: path to the image (optional).
 - `<desc>`: description.
 - `<lang>`: language.

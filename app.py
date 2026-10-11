@@ -44,6 +44,9 @@ TEXTS = {
         "previous": "Anterior",
         "next": "Siguiente",
         "initial_prompt": "Abre un archivo gamelist.xml",
+        "file_caption": "Archivo:",
+        "developer_caption": "Desarrolladora:",
+        "publisher_caption": "Distribuidora:",
         "language_caption": "Idioma:",
         "region_caption": "Región:",
         "description_placeholder": "Sin descripción",
@@ -75,6 +78,9 @@ TEXTS = {
         "previous": "Previous",
         "next": "Next",
         "initial_prompt": "Open a gamelist.xml file",
+        "file_caption": "File:",
+        "developer_caption": "Developer:",
+        "publisher_caption": "Publisher:",
         "language_caption": "Language:",
         "region_caption": "Region:",
         "description_placeholder": "No description",
@@ -107,6 +113,8 @@ class GameEntry:
     region: str
     image_path: Path | None
     rom_path: Path | None
+    developer: str = ""
+    publisher: str = ""
 
 
 def read_field(game: ET.Element, tag: str) -> str:
@@ -131,6 +139,8 @@ def load_games(xml_path: Path) -> list[GameEntry]:
                 region=read_field(game, "region"),
                 image_path=(xml_path.parent / raw_image).resolve() if raw_image else None,
                 rom_path=(xml_path.parent / raw_rom).resolve() if raw_rom else None,
+                developer=read_field(game, "developer"),
+                publisher=read_field(game, "publisher"),
             )
         )
 
@@ -204,10 +214,22 @@ class GameListWindow(QMainWindow):
         right_layout.addWidget(self.game_title)
 
         metadata = QFormLayout()
+        self.file_caption = QLabel(self.t("file_caption"))
+        self.developer_caption = QLabel(self.t("developer_caption"))
+        self.publisher_caption = QLabel(self.t("publisher_caption"))
         self.language_caption = QLabel(self.t("language_caption"))
         self.region_caption = QLabel(self.t("region_caption"))
+        self.file_label = QLabel("—")
+        self.file_label.setWordWrap(True)
+        self.developer_label = QLabel("—")
+        self.developer_label.setWordWrap(True)
+        self.publisher_label = QLabel("—")
+        self.publisher_label.setWordWrap(True)
         self.language_label = QLabel("—")
         self.region_label = QLabel("—")
+        metadata.addRow(self.file_caption, self.file_label)
+        metadata.addRow(self.developer_caption, self.developer_label)
+        metadata.addRow(self.publisher_caption, self.publisher_label)
         metadata.addRow(self.language_caption, self.language_label)
         metadata.addRow(self.region_caption, self.region_label)
         right_layout.addLayout(metadata)
@@ -255,6 +277,9 @@ class GameListWindow(QMainWindow):
         self.exit_action.setText(self.t("exit"))
         self.previous_button.setText(self.t("previous"))
         self.next_button.setText(self.t("next"))
+        self.file_caption.setText(self.t("file_caption"))
+        self.developer_caption.setText(self.t("developer_caption"))
+        self.publisher_caption.setText(self.t("publisher_caption"))
         self.language_caption.setText(self.t("language_caption"))
         self.region_caption.setText(self.t("region_caption"))
         self.description.setPlaceholderText(self.t("description_placeholder"))
@@ -317,6 +342,9 @@ class GameListWindow(QMainWindow):
     def clear_game_details(self) -> None:
         self.current_image = None
         self.description.clear()
+        self.file_label.setText("—")
+        self.developer_label.setText("—")
+        self.publisher_label.setText("—")
         self.language_label.setText("—")
         self.region_label.setText("—")
         self.image_label.setPixmap(QPixmap())
@@ -330,6 +358,9 @@ class GameListWindow(QMainWindow):
         game = self.games[row]
         self.game_title.setText(game.name)
         self.description.setPlainText(game.description)
+        self.file_label.setText(game.rom_path.name if game.rom_path else "—")
+        self.developer_label.setText(game.developer or "—")
+        self.publisher_label.setText(game.publisher or "—")
         self.language_label.setText(game.language or "—")
         self.region_label.setText(game.region or "—")
         self.current_image = game.image_path
