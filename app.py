@@ -49,8 +49,8 @@ TEXTS = {
         "description_placeholder": "Sin descripción",
         "no_image": "Sin imagen",
         "image_unavailable": "Imagen no disponible",
-        "confirm_before_remove": "Confirmar antes de mover",
-        "remove_file": "Mover a back",
+        "confirm_before_remove": "Confirmar antes de borrar",
+        "remove_file": "Borrar",
         "open_dialog": "Abrir lista de juegos",
         "xml_filter": "Archivos XML (*.xml);;Todos los archivos (*)",
         "open_error": "No se pudo abrir el XML",
@@ -59,9 +59,9 @@ TEXTS = {
         "missing_path": "Este juego no tiene un campo <path>.",
         "not_found_title": "Archivo no encontrado",
         "not_found": "No se encontró el archivo:\n{path}",
-        "confirm_title": "Confirmar movimiento",
-        "confirm_remove": "¿Mover este archivo a back?\n{path}",
-        "move_error_title": "No se pudo mover el archivo a back",
+        "confirm_title": "Confirmar borrado",
+        "confirm_remove": "¿Borrar este archivo?\n{path}",
+        "move_error_title": "No se pudo borrar el archivo",
         "empty_list": "No quedan juegos en la lista",
     },
     "en": {
@@ -80,8 +80,8 @@ TEXTS = {
         "description_placeholder": "No description",
         "no_image": "No image",
         "image_unavailable": "Image unavailable",
-        "confirm_before_remove": "Confirm before moving",
-        "remove_file": "Move to back",
+        "confirm_before_remove": "Confirm before deleting",
+        "remove_file": "Delete",
         "open_dialog": "Open game list",
         "xml_filter": "XML files (*.xml);;All files (*)",
         "open_error": "Could not open XML",
@@ -90,8 +90,8 @@ TEXTS = {
         "missing_path": "This game has no <path> field.",
         "not_found_title": "File not found",
         "not_found": "File not found:\n{path}",
-        "confirm_title": "Confirm move",
-        "confirm_remove": "Move this file to back?\n{path}",
+        "confirm_title": "Confirm delete",
+        "confirm_remove": "Delete this file?\n{path}",
         "move_error_title": "Could not move file to back",
         "empty_list": "No games left in the list",
     },
@@ -235,8 +235,9 @@ class GameListWindow(QMainWindow):
 
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 2)
+        splitter.setStretchFactor(0, 2)
+        splitter.setStretchFactor(1, 3)
+        splitter.setSizes([550, 550])
         self.setCentralWidget(splitter)
         self.set_game_controls_enabled(False)
 
