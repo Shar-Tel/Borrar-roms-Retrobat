@@ -49,6 +49,8 @@ El programa busca elementos `<game>` directamente dentro del elemento raíz del 
 
 Las rutas relativas de `<path>` e `<image>` se resuelven desde la carpeta donde está el XML. Por ejemplo:
 
+Solo aparecen en la lista los juegos cuyo `<path>` apunta a un archivo existente.
+
 ```xml
 <gameList>
   <game>
@@ -117,6 +119,8 @@ The program looks for `<game>` elements directly inside the XML root element. Fo
 - `<region>`: region.
 
 Relative `<path>` and `<image>` paths are resolved from the directory containing the XML. For example:
+
+Only games whose `<path>` points to an existing file are shown in the list.
 
 ```xml
 <gameList>

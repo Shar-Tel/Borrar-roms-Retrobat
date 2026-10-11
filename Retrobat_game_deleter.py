@@ -60,7 +60,7 @@ TEXTS = {
         "open_dialog": "Abrir lista de juegos",
         "xml_filter": "Archivos XML (*.xml);;Todos los archivos (*)",
         "open_error": "No se pudo abrir el XML",
-        "empty_xml": "El XML no contiene juegos",
+        "empty_xml": "No hay juegos con archivos existentes",
         "missing_path_title": "Ruta no disponible",
         "missing_path": "Este juego no tiene un campo <path>.",
         "not_found_title": "Archivo no encontrado",
@@ -95,7 +95,7 @@ TEXTS = {
         "open_dialog": "Open game list",
         "xml_filter": "XML files (*.xml);;All files (*)",
         "open_error": "Could not open XML",
-        "empty_xml": "The XML contains no games",
+        "empty_xml": "No games with existing files were found",
         "missing_path_title": "Path unavailable",
         "missing_path": "This game has no <path> field.",
         "not_found_title": "File not found",
@@ -150,26 +150,26 @@ def load_games(
                     continue
 
                 if depth == 2 and element.tag == "game":
-                    raw_image = read_field(element, "image")
                     raw_rom = read_field(element, "path")
-                    games.append(
-                        GameEntry(
-                            name=read_field(element, "name")
-                            or Path(raw_rom).stem
-                            or "Sin nombre",
-                            description=read_field(element, "desc"),
-                            language=read_field(element, "lang"),
-                            region=read_field(element, "region"),
-                            image_path=(xml_path.parent / raw_image).resolve()
-                            if raw_image
-                            else None,
-                            rom_path=(xml_path.parent / raw_rom).resolve()
-                            if raw_rom
-                            else None,
-                            developer=read_field(element, "developer"),
-                            publisher=read_field(element, "publisher"),
+                    rom_path = (xml_path.parent / raw_rom).resolve() if raw_rom else None
+                    if rom_path is not None and rom_path.is_file():
+                        raw_image = read_field(element, "image")
+                        games.append(
+                            GameEntry(
+                                name=read_field(element, "name")
+                                or Path(raw_rom).stem
+                                or "Sin nombre",
+                                description=read_field(element, "desc"),
+                                language=read_field(element, "lang"),
+                                region=read_field(element, "region"),
+                                image_path=(xml_path.parent / raw_image).resolve()
+                                if raw_image
+                                else None,
+                                rom_path=rom_path,
+                                developer=read_field(element, "developer"),
+                                publisher=read_field(element, "publisher"),
+                            )
                         )
-                    )
                     element.clear()
 
                 depth -= 1
