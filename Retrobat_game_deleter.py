@@ -3,16 +3,17 @@
 #Este programa es software libre; puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General de GNU según se publica por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
 #Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
 #Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
-# Está pensado para ser usado en los directorios de Roms de Retrobat.
-
+#Está pensado para ser usado en los directorios de Roms de Retrobat.
+#Versión 1.0.0, 11-10-2026
 
 import shutil
 import sys
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QLocale, Qt
+from PySide6.QtCore import QLocale, QThread, Qt, Signal
 from PySide6.QtGui import QAction, QActionGroup, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -25,6 +26,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
+    QProgressBar,
     QPushButton,
     QSplitter,
     QVBoxLayout,
@@ -43,6 +45,7 @@ TEXTS = {
         "english": "English",
         "previous": "Anterior",
         "next": "Siguiente",
+        "loading_xml": "Cargando datos del XML...",
         "initial_prompt": "Abre un archivo gamelist.xml",
         "file_caption": "Archivo:",
         "developer_caption": "Desarrolladora:",
@@ -77,6 +80,7 @@ TEXTS = {
         "english": "English",
         "previous": "Previous",
         "next": "Next",
+        "loading_xml": "Loading XML data...",
         "initial_prompt": "Open a gamelist.xml file",
         "file_caption": "File:",
         "developer_caption": "Developer:",
@@ -123,29 +127,82 @@ def read_field(game: ET.Element, tag: str) -> str:
     return element.text.strip() if element is not None and element.text else ""
 
 
-def load_games(xml_path: Path) -> list[GameEntry]:
+def load_games(
+    xml_path: Path,
+    progress_callback: Callable[[int], None] | None = None,
+) -> list[GameEntry]:
     # El XML es la base para resolver las rutas relativas de ROM e imagen.
-    root = ET.parse(xml_path).getroot()
     games = []
+    total_bytes = xml_path.stat().st_size
+    bytes_read = 0
+    previous_progress = -1
+    depth = 0
+    parser = ET.XMLPullParser(events=("start", "end"))
 
-    for game in root.findall("game"):
-        raw_image = read_field(game, "image")
-        raw_rom = read_field(game, "path")
-        games.append(
-            GameEntry(
-                name=read_field(game, "name") or Path(raw_rom).stem or "Sin nombre",
-                description=read_field(game, "desc"),
-                language=read_field(game, "lang"),
-                region=read_field(game, "region"),
-                image_path=(xml_path.parent / raw_image).resolve() if raw_image else None,
-                rom_path=(xml_path.parent / raw_rom).resolve() if raw_rom else None,
-                developer=read_field(game, "developer"),
-                publisher=read_field(game, "publisher"),
-            )
-        )
+    with xml_path.open("rb") as xml_file:
+        while chunk := xml_file.read(64 * 1024):
+            parser.feed(chunk)
+            bytes_read += len(chunk)
+
+            for event, element in parser.read_events():
+                if event == "start":
+                    depth += 1
+                    continue
+
+                if depth == 2 and element.tag == "game":
+                    raw_image = read_field(element, "image")
+                    raw_rom = read_field(element, "path")
+                    games.append(
+                        GameEntry(
+                            name=read_field(element, "name")
+                            or Path(raw_rom).stem
+                            or "Sin nombre",
+                            description=read_field(element, "desc"),
+                            language=read_field(element, "lang"),
+                            region=read_field(element, "region"),
+                            image_path=(xml_path.parent / raw_image).resolve()
+                            if raw_image
+                            else None,
+                            rom_path=(xml_path.parent / raw_rom).resolve()
+                            if raw_rom
+                            else None,
+                            developer=read_field(element, "developer"),
+                            publisher=read_field(element, "publisher"),
+                        )
+                    )
+                    element.clear()
+
+                depth -= 1
+
+            if progress_callback is not None and total_bytes:
+                progress = min(99, bytes_read * 100 // total_bytes)
+                if progress != previous_progress:
+                    progress_callback(progress)
+                    previous_progress = progress
+
+    parser.close()
 
     # Ordenar sin distinguir mayúsculas hace predecible la navegación.
-    return sorted(games, key=lambda game: game.name.casefold())
+    games = sorted(games, key=lambda game: game.name.casefold())
+    if progress_callback is not None:
+        progress_callback(100)
+    return games
+
+
+class GameLoadThread(QThread):
+    loaded = Signal(object)
+    failed = Signal(str)
+    progress = Signal(int)
+
+    def __init__(self, xml_path: Path) -> None:
+        super().__init__()
+        self.xml_path = xml_path
+
+    def run(self) -> None:
+        try:
+            self.loaded.emit(load_games(self.xml_path, self.progress.emit))
+        except (ET.ParseError, OSError) as error:
+            self.failed.emit(str(error))
 
 
 class GameListWindow(QMainWindow):
@@ -159,6 +216,8 @@ class GameListWindow(QMainWindow):
         self.setWindowTitle(self.t("window_title"))
         self.resize(1100, 700)
         self.xml_path: Path | None = None
+        self.loading_xml_path: Path | None = None
+        self.load_thread: GameLoadThread | None = None
         self.games: list[GameEntry] = []
         self.current_image: Path | None = None
 
@@ -197,6 +256,14 @@ class GameListWindow(QMainWindow):
         self.game_list = QListWidget()
         self.game_list.currentRowChanged.connect(self.show_game)
         left_layout.addWidget(self.game_list)
+        self.loading_label = QLabel(self.t("loading_xml"))
+        self.loading_label.hide()
+        left_layout.addWidget(self.loading_label)
+        self.loading_progress = QProgressBar()
+        self.loading_progress.setRange(0, 100)
+        self.loading_progress.setFormat("%p%")
+        self.loading_progress.hide()
+        left_layout.addWidget(self.loading_progress)
 
         navigation = QHBoxLayout()
         self.previous_button = QPushButton(self.t("previous"))
@@ -277,6 +344,7 @@ class GameListWindow(QMainWindow):
         self.exit_action.setText(self.t("exit"))
         self.previous_button.setText(self.t("previous"))
         self.next_button.setText(self.t("next"))
+        self.loading_label.setText(self.t("loading_xml"))
         self.file_caption.setText(self.t("file_caption"))
         self.developer_caption.setText(self.t("developer_caption"))
         self.publisher_caption.setText(self.t("publisher_caption"))
@@ -307,6 +375,9 @@ class GameListWindow(QMainWindow):
         self.delete_button.setEnabled(enabled)
 
     def open_xml(self) -> None:
+        if self.load_thread is not None:
+            return
+
         filename, _ = QFileDialog.getOpenFileName(
             self,
             self.t("open_dialog"),
@@ -316,16 +387,25 @@ class GameListWindow(QMainWindow):
         if not filename:
             return
 
-        selected_path = Path(filename)
-        try:
-            # Parsear antes de sustituir el estado actual conserva la lista abierta
-            # si el nuevo archivo no existe o contiene XML inválido.
-            games = load_games(selected_path)
-        except (ET.ParseError, OSError) as error:
-            QMessageBox.critical(self, self.t("open_error"), str(error))
+        selected_path = Path(filename).resolve()
+        self.loading_xml_path = selected_path
+        self.loading_progress.setValue(0)
+        self.loading_label.show()
+        self.loading_progress.show()
+        self.open_action.setEnabled(False)
+
+        self.load_thread = GameLoadThread(selected_path)
+        self.load_thread.loaded.connect(self.on_games_loaded)
+        self.load_thread.failed.connect(self.on_load_failed)
+        self.load_thread.progress.connect(self.loading_progress.setValue)
+        self.load_thread.finished.connect(self.on_load_finished)
+        self.load_thread.start()
+
+    def on_games_loaded(self, games: list[GameEntry]) -> None:
+        if self.loading_xml_path is None:
             return
 
-        self.xml_path = selected_path.resolve()
+        self.xml_path = self.loading_xml_path
         self.games = games
         self.empty_state = "empty_xml"
         self.game_list.clear()
@@ -338,6 +418,25 @@ class GameListWindow(QMainWindow):
         else:
             self.clear_game_details()
             self.game_title.setText(self.t("empty_xml"))
+
+    def on_load_failed(self, message: str) -> None:
+        QMessageBox.critical(self, self.t("open_error"), message)
+
+    def on_load_finished(self) -> None:
+        self.loading_label.hide()
+        self.loading_progress.hide()
+        self.open_action.setEnabled(True)
+        self.loading_xml_path = None
+        thread = self.load_thread
+        self.load_thread = None
+        if thread is not None:
+            thread.deleteLater()
+
+    def closeEvent(self, event) -> None:
+        # Esperar al hilo evita destruir una ventana mientras la carga sigue activa.
+        if self.load_thread is not None:
+            self.load_thread.wait()
+        super().closeEvent(event)
 
     def clear_game_details(self) -> None:
         self.current_image = None
