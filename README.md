@@ -4,13 +4,14 @@ Aplicación de escritorio para abrir un `gamelist.xml`, consultar los datos de s
 Creado con la asistencia de GitHub Copilot.
 ## Funciones
 
-- Muestra el nombre, la descripción, el idioma, la región y la imagen asociada al juego seleccionado.
+- Muestra el nombre, la descripción, el idioma, la región y la imagen asociada al juego seleccionado. Para la mayor parte de la información hace falta haber escrapeado primero los juegos.
 - Permite recorrer la lista con los botones **Anterior** y **Siguiente**.
 - Ofrece interfaz en español e inglés. El idioma inicial se elige según el idioma del sistema.
+- Si se mira el directorio fbneo, intenta sacar información extra de arcade.xml. Si no existe, se lo puede bajar automáticamente de https://data.spludlow.co.uk/fbneo/arcade.xml. Con esta información extra muestra si un juego es clon de otro y lo marca en rojo en la lista.
 - Antes de mover una ROM, comprueba que la ruta esté indicada y que el archivo exista. La confirmación se puede desactivar desde la casilla correspondiente.
 - Crea `back` junto al `gamelist.xml` abierto, independientemente del directorio desde el que se inicie la aplicación.
 - Si en `back` ya existe un archivo con el mismo nombre, añade un sufijo numérico para evitar sobrescribirlo.
-- Se recomienda tras acabar de borrar los juegos deseados ir a las opciones de desarrollador de Retrobat y elegir "Limpiar listas de jjuegos y borrar medios no utilizados" para que elimine los juegos del gamelist.xml y también las imágenes, manuales o videos de juegos borrados.
+- Se recomienda tras acabar de borrar los juegos deseados ir a las opciones de desarrollador de Retrobat y elegir "Limpiar listas de juegos y borrar medios no utilizados" para que elimine los juegos del gamelist.xml y también las imágenes, manuales o videos de juegos borrados.
 
 
 ## Requisitos
@@ -76,10 +77,11 @@ Created with GitHub Copilot.
 
 ## Features
 
-- Shows the selected game's name, description, language, region, and associated image.
+- Shows the selected game's name, description, language, region, and associated image. Most of this information requires scraping the games first.
 - Lets you browse the list using the **Previous** and **Next** buttons.
 - Offers a Spanish and English interface. The initial language is chosen based on the system language.
 - Includes a language switch in the top menu.
+- When opening a `gamelist.xml` from the `fbneo` directory, the app looks for `arcade.xml`. If it is missing, the app asks whether to download it from https://data.spludlow.co.uk/fbneo/arcade.xml. When available, this extra information is used to identify clone games and mark them in red in the list.
 - Before moving a ROM, it checks that the path is set and that the file exists. The confirmation step can be disabled from the corresponding checkbox.
 - Creates `back` next to the opened `gamelist.xml`, regardless of the directory from which the application is launched.
 - If `back` already contains a file with the same name, it adds a numeric suffix to avoid overwriting it.

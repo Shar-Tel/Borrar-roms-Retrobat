@@ -4,7 +4,7 @@
 #Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
 #Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
 #Está pensado para ser usado en los directorios de Roms de Retrobat.
-#Versión 1.1.1, 11-10-2026
+#Versión 1.1.2, 11-10-2026
 
 import shutil
 import sys
@@ -45,7 +45,7 @@ TEXTS = {
         "language_menu": "Idioma",
         "about_menu": "Acerca de",
         "about_title": "Acerca del Gestor de juegos",
-        "about_text": "Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión 1.1.1",
+        "about_text": "Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión 1.1.2",
         "open_xml": "Abrir XML...",
         "exit": "Salir",
         "spanish": "Español",
@@ -91,7 +91,7 @@ TEXTS = {
         "language_menu": "Language",
         "about_menu": "About",
         "about_title": "About Game Manager",
-        "about_text": "ROM manager for RetroBat.\nAllows easy deletion of games from RetroBat.\n\nCreated by: Ximo León\nVersion 1.1.0",
+        "about_text": "ROM manager for RetroBat.\nAllows easy deletion of games from RetroBat.\n\nCreated by: Ximo León\nVersion 1.1.2",
         "open_xml": "Open XML...",
         "exit": "Exit",
         "spanish": "Español",
@@ -489,10 +489,15 @@ class GameListWindow(QMainWindow):
         if self.load_thread is not None:
             return
 
+        initial_path = (
+            self.xml_path.parent / "gamelist.xml"
+            if self.xml_path is not None
+            else Path.cwd() / "gamelist.xml"
+        )
         filename, _ = QFileDialog.getOpenFileName(
             self,
             self.t("open_dialog"),
-            "",
+            str(initial_path),
             self.t("xml_filter"),
         )
         if not filename:
