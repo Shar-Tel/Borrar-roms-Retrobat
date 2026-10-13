@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.request import urlopen
 
 from PySide6.QtCore import QLocale, Qt, QThread, Signal
 from PySide6.QtGui import QAction, QActionGroup, QColor, QKeySequence, QPixmap
@@ -34,6 +35,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+ARCADE_XML_URL = "https://data.spludlow.co.uk/fbneo/arcade.xml"
+
 # Traducciones de todos los textos de interfaz, indexadas por idioma y por clave.
 TEXTS = {
     "es": {
@@ -51,6 +54,13 @@ TEXTS = {
         "next": "Siguiente",
         "loading_xml": "Cargando datos del XML...",
         "initial_prompt": "Abre un archivo gamelist.xml",
+        "download_arcade_title": "No se encontró arcade.xml",
+        "download_arcade_prompt": "¿Quieres descargar arcade.xml de Internet?\n\n{url}",
+        "downloading_arcade": "Descargando arcade.xml...",
+        "download_success_title": "Descarga completada",
+        "download_success": "arcade.xml se ha descargado correctamente en:\n{path}",
+        "download_failure_title": "Error de descarga",
+        "download_failure": "No se pudo descargar arcade.xml:\n{error}\n\nSe continuará con gamelist.xml.",
         "file_caption": "Archivo:",
         "clone_of_caption": "Clon de:",
         "developer_caption": "Desarrolladora:",
@@ -90,6 +100,13 @@ TEXTS = {
         "next": "Next",
         "loading_xml": "Loading XML data...",
         "initial_prompt": "Open a gamelist.xml file",
+        "download_arcade_title": "arcade.xml was not found",
+        "download_arcade_prompt": "Would you like to download arcade.xml from the Internet?\n\n{url}",
+        "downloading_arcade": "Downloading arcade.xml...",
+        "download_success_title": "Download complete",
+        "download_success": "arcade.xml was downloaded successfully to:\n{path}",
+        "download_failure_title": "Download failed",
+        "download_failure": "Could not download arcade.xml:\n{error}\n\nContinuing with gamelist.xml.",
         "file_caption": "File:",
         "clone_of_caption": "Clone of:",
         "developer_caption": "Developer:",
@@ -135,6 +152,22 @@ def read_field(game: ET.Element, tag: str) -> str:
     # Los campos opcionales ausentes o vacíos se normalizan como cadena vacía.
     element = game.find(tag)
     return element.text.strip() if element is not None and element.text else ""
+
+
+def download_arcade_xml(destination: Path) -> None:
+    temporary_path = destination.with_name(f"{destination.name}.download")
+    try:
+        with urlopen(ARCADE_XML_URL, timeout=30) as response, temporary_path.open(
+            "wb"
+        ) as output_file:
+            shutil.copyfileobj(response, output_file)
+
+        for _, element in ET.iterparse(temporary_path, events=("end",)):
+            element.clear()
+        temporary_path.replace(destination)
+    except (OSError, ET.ParseError):
+        temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def load_arcade_games(xml_path: Path) -> dict[str, tuple[str, str]]:
@@ -244,8 +277,21 @@ class GameLoadThread(QThread):
     def run(self) -> None:
         try:
             self.loaded.emit(load_games(self.xml_path, self.progress.emit))
-        except (ET.ParseError, OSError) as error:
+        except (OSError, ET.ParseError) as error:
             self.failed.emit(str(error))
+
+
+class ArcadeDownloadThread(QThread):
+    def __init__(self, destination: Path) -> None:
+        super().__init__()
+        self.destination = destination
+        self.error: str | None = None
+
+    def run(self) -> None:
+        try:
+            download_arcade_xml(self.destination)
+        except (OSError, ET.ParseError) as error:
+            self.error = str(error)
 
 
 class GameListWindow(QMainWindow):
@@ -260,7 +306,7 @@ class GameListWindow(QMainWindow):
         self.resize(1100, 700)
         self.xml_path: Path | None = None
         self.loading_xml_path: Path | None = None
-        self.load_thread: GameLoadThread | None = None
+        self.load_thread: QThread | None = None
         self.games: list[GameEntry] = []
         self.current_image: Path | None = None
 
@@ -337,6 +383,8 @@ class GameListWindow(QMainWindow):
         self.file_label.setWordWrap(True)
         self.clone_of_label = QLabel("—")
         self.clone_of_label.setWordWrap(True)
+        self.clone_of_caption.hide()
+        self.clone_of_label.hide()
         self.developer_label = QLabel("—")
         self.developer_label.setWordWrap(True)
         self.publisher_label = QLabel("—")
@@ -451,18 +499,70 @@ class GameListWindow(QMainWindow):
             return
 
         selected_path = Path(filename).resolve()
+        download_arcade = False
+        if selected_path.parent.name.casefold() == "fbneo":
+            arcade_path = selected_path.parent / "arcade.xml"
+            if not arcade_path.is_file():
+                answer = QMessageBox.question(
+                    self,
+                    self.t("download_arcade_title"),
+                    self.t("download_arcade_prompt", url=ARCADE_XML_URL),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
+                )
+                download_arcade = answer == QMessageBox.StandardButton.Yes
+
         self.loading_xml_path = selected_path
         self.loading_progress.setValue(0)
         self.loading_label.show()
         self.loading_progress.show()
         self.open_action.setEnabled(False)
 
-        self.load_thread = GameLoadThread(selected_path)
+        if download_arcade:
+            self.loading_label.setText(self.t("downloading_arcade"))
+            self.loading_progress.setRange(0, 0)
+            download_thread = ArcadeDownloadThread(arcade_path)
+            self.load_thread = download_thread
+            download_thread.finished.connect(
+                lambda thread=download_thread: self.on_arcade_download_finished(thread)
+            )
+            download_thread.start()
+        else:
+            self.start_game_load()
+
+    def start_game_load(self) -> None:
+        if self.loading_xml_path is None:
+            return
+
+        self.loading_label.setText(self.t("loading_xml"))
+        self.loading_progress.setRange(0, 100)
+        self.loading_progress.setValue(0)
+        self.load_thread = GameLoadThread(self.loading_xml_path)
         self.load_thread.loaded.connect(self.on_games_loaded)
         self.load_thread.failed.connect(self.on_load_failed)
         self.load_thread.progress.connect(self.loading_progress.setValue)
         self.load_thread.finished.connect(self.on_load_finished)
         self.load_thread.start()
+
+    def on_arcade_download_finished(self, thread: ArcadeDownloadThread) -> None:
+        if self.load_thread is thread:
+            self.load_thread = None
+        thread.deleteLater()
+
+        if thread.error is None:
+            QMessageBox.information(
+                self,
+                self.t("download_success_title"),
+                self.t("download_success", path=str(thread.destination)),
+            )
+        else:
+            QMessageBox.warning(
+                self,
+                self.t("download_failure_title"),
+                self.t("download_failure", error=thread.error),
+            )
+
+        self.start_game_load()
 
     def on_games_loaded(self, games: list[GameEntry]) -> None:
         if self.loading_xml_path is None:
@@ -510,6 +610,8 @@ class GameListWindow(QMainWindow):
         self.description.clear()
         self.file_label.setText("—")
         self.clone_of_label.setText("—")
+        self.clone_of_caption.hide()
+        self.clone_of_label.hide()
         self.developer_label.setText("—")
         self.publisher_label.setText("—")
         self.language_label.setText("—")
@@ -527,6 +629,8 @@ class GameListWindow(QMainWindow):
         self.description.setPlainText(game.description)
         self.file_label.setText(game.rom_path.name if game.rom_path else "—")
         self.clone_of_label.setText(game.clone_of or "—")
+        self.clone_of_caption.setVisible(bool(game.clone_of))
+        self.clone_of_label.setVisible(bool(game.clone_of))
         self.developer_label.setText(game.developer or "—")
         self.publisher_label.setText(game.publisher or "—")
         self.language_label.setText(game.language or "—")
