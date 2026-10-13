@@ -4,7 +4,7 @@
 #Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
 #Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
 #Está pensado para ser usado en los directorios de Roms de Retrobat.
-#Versión 1.1.0, 11-10-2026
+#Versión 1.1.1, 11-10-2026
 
 import shutil
 import sys
@@ -42,7 +42,7 @@ TEXTS = {
         "language_menu": "Idioma",
         "about_menu": "Acerca de",
         "about_title": "Acerca del Gestor de juegos",
-        "about_text": "Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión 1.1.0",
+        "about_text": "Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión 1.1.1",
         "open_xml": "Abrir XML...",
         "exit": "Salir",
         "spanish": "Español",
