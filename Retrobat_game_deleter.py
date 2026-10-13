@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import QLocale, Qt, QThread, Signal
-from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QPixmap
+from PySide6.QtGui import QAction, QActionGroup, QColor, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QListWidget,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
@@ -51,6 +52,7 @@ TEXTS = {
         "loading_xml": "Cargando datos del XML...",
         "initial_prompt": "Abre un archivo gamelist.xml",
         "file_caption": "Archivo:",
+        "clone_of_caption": "Clon de:",
         "developer_caption": "Desarrolladora:",
         "publisher_caption": "Distribuidora:",
         "language_caption": "Idioma:",
@@ -89,6 +91,7 @@ TEXTS = {
         "loading_xml": "Loading XML data...",
         "initial_prompt": "Open a gamelist.xml file",
         "file_caption": "File:",
+        "clone_of_caption": "Clone of:",
         "developer_caption": "Developer:",
         "publisher_caption": "Publisher:",
         "language_caption": "Language:",
@@ -125,6 +128,7 @@ class GameEntry:
     rom_path: Path | None
     developer: str = ""
     publisher: str = ""
+    clone_of: str = ""
 
 
 def read_field(game: ET.Element, tag: str) -> str:
@@ -133,12 +137,37 @@ def read_field(game: ET.Element, tag: str) -> str:
     return element.text.strip() if element is not None and element.text else ""
 
 
+def load_arcade_games(xml_path: Path) -> dict[str, tuple[str, str]]:
+    # arcade.xml solo se aplica al sistema FBNeo; si no se puede leer, se usa gamelist.xml.
+    if xml_path.parent.name.casefold() != "fbneo":
+        return {}
+
+    arcade_path = xml_path.parent / "arcade.xml"
+    if not arcade_path.is_file():
+        return {}
+
+    try:
+        root = ET.parse(arcade_path).getroot()
+    except (ET.ParseError, OSError):
+        return {}
+
+    arcade_games = {}
+    for entry in root.iter("game"):
+        name = (entry.get("name") or "").strip()
+        description = read_field(entry, "description")
+        clone_of = (entry.get("cloneof") or "").strip()
+        if name:
+            arcade_games[name.casefold()] = (description, clone_of)
+    return arcade_games
+
+
 def load_games(
     xml_path: Path,
     progress_callback: Callable[[int], None] | None = None,
 ) -> list[GameEntry]:
     # El XML es la base para resolver las rutas relativas de ROM e imagen.
     games = []
+    arcade_games = load_arcade_games(xml_path)
     total_bytes = xml_path.stat().st_size
     bytes_read = 0
     previous_progress = -1
@@ -159,12 +188,19 @@ def load_games(
                     raw_rom = read_field(element, "path")
                     rom_path = (xml_path.parent / raw_rom).resolve() if raw_rom else None
                     if rom_path is not None and rom_path.is_file():
+                        game_name = read_field(element, "name") or Path(raw_rom).stem or "Sin nombre"
+                        arcade_description, clone_id = arcade_games.get(
+                            Path(raw_rom).stem.casefold(), ("", "")
+                        )
+                        clone_name = (
+                            arcade_games.get(clone_id.casefold(), ("", ""))[0]
+                            if clone_id
+                            else ""
+                        )
                         raw_image = read_field(element, "image")
                         games.append(
                             GameEntry(
-                                name=read_field(element, "name")
-                                or Path(raw_rom).stem
-                                or "Sin nombre",
+                                name=arcade_description or game_name,
                                 description=read_field(element, "desc"),
                                 language=read_field(element, "lang"),
                                 region=read_field(element, "region"),
@@ -174,6 +210,7 @@ def load_games(
                                 rom_path=rom_path,
                                 developer=read_field(element, "developer"),
                                 publisher=read_field(element, "publisher"),
+                                clone_of=clone_name or clone_id,
                             )
                         )
                     element.clear()
@@ -291,12 +328,15 @@ class GameListWindow(QMainWindow):
 
         metadata = QFormLayout()
         self.file_caption = QLabel(self.t("file_caption"))
+        self.clone_of_caption = QLabel(self.t("clone_of_caption"))
         self.developer_caption = QLabel(self.t("developer_caption"))
         self.publisher_caption = QLabel(self.t("publisher_caption"))
         self.language_caption = QLabel(self.t("language_caption"))
         self.region_caption = QLabel(self.t("region_caption"))
         self.file_label = QLabel("—")
         self.file_label.setWordWrap(True)
+        self.clone_of_label = QLabel("—")
+        self.clone_of_label.setWordWrap(True)
         self.developer_label = QLabel("—")
         self.developer_label.setWordWrap(True)
         self.publisher_label = QLabel("—")
@@ -304,6 +344,7 @@ class GameListWindow(QMainWindow):
         self.language_label = QLabel("—")
         self.region_label = QLabel("—")
         metadata.addRow(self.file_caption, self.file_label)
+        metadata.addRow(self.clone_of_caption, self.clone_of_label)
         metadata.addRow(self.developer_caption, self.developer_label)
         metadata.addRow(self.publisher_caption, self.publisher_label)
         metadata.addRow(self.language_caption, self.language_label)
@@ -363,6 +404,7 @@ class GameListWindow(QMainWindow):
         self.next_button.setText(self.t("next"))
         self.loading_label.setText(self.t("loading_xml"))
         self.file_caption.setText(self.t("file_caption"))
+        self.clone_of_caption.setText(self.t("clone_of_caption"))
         self.developer_caption.setText(self.t("developer_caption"))
         self.publisher_caption.setText(self.t("publisher_caption"))
         self.language_caption.setText(self.t("language_caption"))
@@ -430,7 +472,11 @@ class GameListWindow(QMainWindow):
         self.games = games
         self.empty_state = "empty_xml"
         self.game_list.clear()
-        self.game_list.addItems([game.name for game in games])
+        for game in games:
+            item = QListWidgetItem(game.name)
+            if game.clone_of:
+                item.setForeground(QColor("red"))
+            self.game_list.addItem(item)
         self.set_game_controls_enabled(bool(games))
         self.set_file_window_title()
         if games:
@@ -463,6 +509,7 @@ class GameListWindow(QMainWindow):
         self.current_image = None
         self.description.clear()
         self.file_label.setText("—")
+        self.clone_of_label.setText("—")
         self.developer_label.setText("—")
         self.publisher_label.setText("—")
         self.language_label.setText("—")
@@ -479,6 +526,7 @@ class GameListWindow(QMainWindow):
         self.game_title.setText(game.name)
         self.description.setPlainText(game.description)
         self.file_label.setText(game.rom_path.name if game.rom_path else "—")
+        self.clone_of_label.setText(game.clone_of or "—")
         self.developer_label.setText(game.developer or "—")
         self.publisher_label.setText(game.publisher or "—")
         self.language_label.setText(game.language or "—")
