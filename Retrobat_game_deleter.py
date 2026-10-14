@@ -4,7 +4,7 @@
 #Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
 #Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
 #Está pensado para ser usado en los directorios de Roms de Retrobat.
-#Versión 1.1.2, 13-10-2026
+#Versión 1.1.3, 13-10-2026
 
 import shutil
 import sys
@@ -45,7 +45,7 @@ TEXTS = {
         "language_menu": "Idioma",
         "about_menu": "Acerca de",
         "about_title": "Acerca del Gestor de juegos",
-        "about_text": "Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión 1.1.2",
+        "about_text": "Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión 1.1.3",
         "open_xml": "Abrir XML...",
         "exit": "Salir",
         "spanish": "Español",
@@ -91,7 +91,7 @@ TEXTS = {
         "language_menu": "Language",
         "about_menu": "About",
         "about_title": "About Game Manager",
-        "about_text": "ROM manager for RetroBat.\nAllows easy deletion of games from RetroBat.\n\nCreated by: Ximo León\nVersion 1.1.2",
+        "about_text": "ROM manager for RetroBat.\nAllows easy deletion of games from RetroBat.\n\nCreated by: Ximo León\nVersion 1.1.3 ",
         "open_xml": "Open XML...",
         "exit": "Exit",
         "spanish": "Español",
@@ -146,6 +146,46 @@ class GameEntry:
     developer: str = ""
     publisher: str = ""
     clone_of: str = ""
+
+
+def order_games_with_clones(games: list[GameEntry]) -> list[GameEntry]:
+    games_by_name = {game.name.casefold(): game for game in games}
+    games_by_rom = {
+        game.rom_path.stem.casefold(): game
+        for game in games
+        if game.rom_path is not None
+    }
+    children: dict[int, list[GameEntry]] = {}
+    roots = []
+
+    for game in games:
+        parent_key = game.clone_of.casefold()
+        parent = games_by_name.get(parent_key) or games_by_rom.get(parent_key)
+        if parent is None or parent is game:
+            roots.append(game)
+        else:
+            children.setdefault(id(parent), []).append(game)
+
+    ordered = []
+    visited = set()
+
+    def add_game_and_clones(game: GameEntry) -> None:
+        game_id = id(game)
+        if game_id in visited:
+            return
+        visited.add(game_id)
+        ordered.append(game)
+        for clone in sorted(
+            children.get(game_id, []), key=lambda item: item.name.casefold()
+        ):
+            add_game_and_clones(clone)
+
+    for root in sorted(roots, key=lambda item: item.name.casefold()):
+        add_game_and_clones(root)
+    for game in sorted(games, key=lambda item: item.name.casefold()):
+        add_game_and_clones(game)
+
+    return ordered
 
 
 def read_field(game: ET.Element, tag: str) -> str:
@@ -258,8 +298,7 @@ def load_games(
 
     parser.close()
 
-    # Ordenar sin distinguir mayúsculas hace predecible la navegación.
-    games = sorted(games, key=lambda game: game.name.casefold())
+    games = order_games_with_clones(games)
     if progress_callback is not None:
         progress_callback(100)
     return games
@@ -370,6 +409,8 @@ class GameListWindow(QMainWindow):
         right_layout = QVBoxLayout(right_panel)
         self.game_title = QLabel(self.t("initial_prompt"))
         self.game_title.setStyleSheet("font-size: 20px; font-weight: 600;")
+        self.game_title.setWordWrap(True)
+        self.game_title.setMinimumWidth(0)
         right_layout.addWidget(self.game_title)
 
         metadata = QFormLayout()
@@ -579,10 +620,25 @@ class GameListWindow(QMainWindow):
         self.games = games
         self.empty_state = "empty_xml"
         self.game_list.clear()
+        games_by_name = {game.name.casefold(): game for game in games}
+        games_by_rom = {
+            game.rom_path.stem.casefold(): game
+            for game in games
+            if game.rom_path is not None
+        }
+        parents_with_clones = set()
+        for game in games:
+            parent_key = game.clone_of.casefold()
+            parent = games_by_name.get(parent_key) or games_by_rom.get(parent_key)
+            if parent is not None and parent is not game:
+                parents_with_clones.add(id(parent))
+
         for game in games:
             item = QListWidgetItem(game.name)
             if game.clone_of:
                 item.setForeground(QColor("red"))
+            elif id(game) in parents_with_clones:
+                item.setForeground(QColor("blue"))
             self.game_list.addItem(item)
         self.set_game_controls_enabled(bool(games))
         self.set_file_window_title()
