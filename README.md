@@ -11,6 +11,7 @@ Creado con la asistencia de GitHub Copilot.
 - Antes de mover una ROM, comprueba que la ruta esté indicada y que el archivo exista. La confirmación se puede desactivar desde la casilla correspondiente.
 - Crea `back` junto al `gamelist.xml` abierto, independientemente del directorio desde el que se inicie la aplicación.
 - Si en `back` ya existe un archivo con el mismo nombre, añade un sufijo numérico para evitar sobrescribirlo.
+-¡Haz backup de tu directorio de ROMs antes de usar este software!
 - Se recomienda tras acabar de borrar los juegos deseados ir a las opciones de desarrollador de Retrobat y elegir "Limpiar listas de juegos y borrar medios no utilizados" para que elimine los juegos del gamelist.xml y también las imágenes, manuales o videos de juegos borrados.
 
 
@@ -85,6 +86,7 @@ Created with GitHub Copilot.
 - Before moving a ROM, it checks that the path is set and that the file exists. The confirmation step can be disabled from the corresponding checkbox.
 - Creates `back` next to the opened `gamelist.xml`, regardless of the directory from which the application is launched.
 - If `back` already contains a file with the same name, it adds a numeric suffix to avoid overwriting it.
+-Please backup your ROM directory before using this software!
 - After finishing deleting the games you want, it is recommended to go to RetroBat's developer options and choose **Clean game lists and delete unused media** so it removes the games from `gamelist.xml` and also the images, manuals, or videos of deleted games.
 
 ## Requirements

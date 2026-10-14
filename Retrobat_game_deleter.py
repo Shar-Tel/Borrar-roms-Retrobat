@@ -4,7 +4,7 @@
 #Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
 #Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
 #Está pensado para ser usado en los directorios de Roms de Retrobat.
-#Versión 1.1.2, 11-10-2026
+#Versión 1.1.2, 13-10-2026
 
 import shutil
 import sys
@@ -401,12 +401,14 @@ class GameListWindow(QMainWindow):
 
         self.description = QPlainTextEdit()
         self.description.setReadOnly(True)
+        self.description.setMaximumHeight(200)
         self.description.setPlaceholderText(self.t("description_placeholder"))
         right_layout.addWidget(self.description, 1)
 
         self.image_label = QLabel(self.t("no_image"))
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setMinimumHeight(220)
+        self.image_label.setMaximumHeight(220)
         self.image_label.setStyleSheet("background: #20242a; color: #c6cbd2;")
         right_layout.addWidget(self.image_label, 1)
 
