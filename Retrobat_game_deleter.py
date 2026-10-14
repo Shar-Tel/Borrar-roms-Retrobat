@@ -4,7 +4,6 @@
 #Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
 #Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
 #Está pensado para ser usado en los directorios de Roms de Retrobat.
-#Versión 1.1.3, 13-10-2026
 
 import shutil
 import sys
@@ -35,6 +34,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+__version__ = "1.1.3"
+
 ARCADE_XML_URL = "https://data.spludlow.co.uk/fbneo/arcade.xml"
 
 # Traducciones de todos los textos de interfaz, indexadas por idioma y por clave.
@@ -45,7 +46,7 @@ TEXTS = {
         "language_menu": "Idioma",
         "about_menu": "Acerca de",
         "about_title": "Acerca del Gestor de juegos",
-        "about_text": "Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión 1.1.3",
+        "about_text": f"Gestor de ROMs para RetroBat.\nPermite borrar con facilidad juegos de Retrobat.\nCreado por: Ximo León\nVersión {__version__}",
         "open_xml": "Abrir XML...",
         "exit": "Salir",
         "spanish": "Español",
@@ -91,7 +92,7 @@ TEXTS = {
         "language_menu": "Language",
         "about_menu": "About",
         "about_title": "About Game Manager",
-        "about_text": "ROM manager for RetroBat.\nAllows easy deletion of games from RetroBat.\n\nCreated by: Ximo León\nVersion 1.1.3 ",
+        "about_text": f"ROM manager for RetroBat.\nAllows easy deletion of games from RetroBat.\n\nCreated by: Ximo León\nVersion {__version__}",
         "open_xml": "Open XML...",
         "exit": "Exit",
         "spanish": "Español",
