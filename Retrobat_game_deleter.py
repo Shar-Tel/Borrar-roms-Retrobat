@@ -5,6 +5,8 @@
 #Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
 #Está pensado para ser usado en los directorios de Roms de Retrobat.
 
+"""Interfaz para revisar gamelist.xml y mover ROM seleccionadas a una copia."""
+
 import shutil
 import sys
 import xml.etree.ElementTree as ET
@@ -137,7 +139,8 @@ TEXTS = {
 
 @dataclass
 class GameEntry:
-    # Representa los datos visibles del juego y las rutas asociadas.
+    """Datos de un juego y rutas resueltas desde el gamelist.xml."""
+
     name: str
     description: str
     language: str
@@ -150,6 +153,11 @@ class GameEntry:
 
 
 def order_games_with_clones(games: list[GameEntry]) -> list[GameEntry]:
+    """Agrupa cada clon bajo su padre y ordena alfabéticamente cada grupo.
+
+    La relación puede referirse al nombre visible o al nombre base de la ROM.
+    Juegos sin padre disponible se conservan como raíces independientes.
+    """
     games_by_name = {game.name.casefold(): game for game in games}
     games_by_rom = {
         game.rom_path.stem.casefold(): game
@@ -190,12 +198,13 @@ def order_games_with_clones(games: list[GameEntry]) -> list[GameEntry]:
 
 
 def read_field(game: ET.Element, tag: str) -> str:
-    # Los campos opcionales ausentes o vacíos se normalizan como cadena vacía.
+    """Devuelve un campo XML sin espacios externos, o vacío si falta."""
     element = game.find(tag)
     return element.text.strip() if element is not None and element.text else ""
 
 
 def download_arcade_xml(destination: Path) -> None:
+    """Descarga y valida arcade.xml antes de reemplazar el archivo destino."""
     temporary_path = destination.with_name(f"{destination.name}.download")
     try:
         with urlopen(ARCADE_XML_URL, timeout=30) as response, temporary_path.open(
@@ -212,7 +221,10 @@ def download_arcade_xml(destination: Path) -> None:
 
 
 def load_arcade_games(xml_path: Path) -> dict[str, tuple[str, str]]:
-    # arcade.xml solo se aplica al sistema FBNeo; si no se puede leer, se usa gamelist.xml.
+    """Carga descripciones y relaciones de clon de arcade.xml para FBNeo.
+
+    Si el XML auxiliar no existe o no se puede analizar, devuelve un mapa vacío.
+    """
     if xml_path.parent.name.casefold() != "fbneo":
         return {}
 
@@ -239,6 +251,10 @@ def load_games(
     xml_path: Path,
     progress_callback: Callable[[int], None] | None = None,
 ) -> list[GameEntry]:
+    """Lee juegos válidos por bloques y notifica el progreso si se solicita.
+
+    Solo incluye ROM existentes; las rutas relativas se resuelven desde el XML.
+    """
     # El XML es la base para resolver las rutas relativas de ROM e imagen.
     games = []
     arcade_games = load_arcade_games(xml_path)
@@ -306,6 +322,8 @@ def load_games(
 
 
 class GameLoadThread(QThread):
+    """Carga juegos fuera del hilo de interfaz y publica resultado o error."""
+
     loaded = Signal(object)
     failed = Signal(str)
     progress = Signal(int)
@@ -315,6 +333,7 @@ class GameLoadThread(QThread):
         self.xml_path = xml_path
 
     def run(self) -> None:
+        """Ejecuta la carga y envía excepciones de lectura por la señal failed."""
         try:
             self.loaded.emit(load_games(self.xml_path, self.progress.emit))
         except (OSError, ET.ParseError) as error:
@@ -322,12 +341,15 @@ class GameLoadThread(QThread):
 
 
 class ArcadeDownloadThread(QThread):
+    """Descarga arcade.xml sin bloquear la ventana principal."""
+
     def __init__(self, destination: Path) -> None:
         super().__init__()
         self.destination = destination
         self.error: str | None = None
 
     def run(self) -> None:
+        """Guarda el error para que el hilo principal pueda mostrarlo al terminar."""
         try:
             download_arcade_xml(self.destination)
         except (OSError, ET.ParseError) as error:
@@ -335,6 +357,8 @@ class ArcadeDownloadThread(QThread):
 
 
 class GameListWindow(QMainWindow):
+    """Ventana principal para cargar, consultar y respaldar juegos."""
+
     def __init__(self) -> None:
         super().__init__()
         self.language = (
@@ -530,6 +554,7 @@ class GameListWindow(QMainWindow):
         self.delete_shortcut_action.setEnabled(enabled)
 
     def open_xml(self) -> None:
+        """Solicita un gamelist.xml y prepara la carga en segundo plano."""
         if self.load_thread is not None:
             return
 
@@ -580,6 +605,7 @@ class GameListWindow(QMainWindow):
             self.start_game_load()
 
     def start_game_load(self) -> None:
+        """Conecta las señales del hilo de carga y lo inicia."""
         if self.loading_xml_path is None:
             return
 
@@ -594,6 +620,7 @@ class GameListWindow(QMainWindow):
         self.load_thread.start()
 
     def on_arcade_download_finished(self, thread: ArcadeDownloadThread) -> None:
+        """Informa del resultado de descarga y continúa con el gamelist.xml."""
         if self.load_thread is thread:
             self.load_thread = None
         thread.deleteLater()
@@ -614,6 +641,7 @@ class GameListWindow(QMainWindow):
         self.start_game_load()
 
     def on_games_loaded(self, games: list[GameEntry]) -> None:
+        """Actualiza modelo, lista y colores cuando termina la carga."""
         if self.loading_xml_path is None:
             return
 
@@ -628,6 +656,7 @@ class GameListWindow(QMainWindow):
             if game.rom_path is not None
         }
         parents_with_clones = set()
+        # El padre puede estar identificado por el nombre mostrado o por la ROM.
         for game in games:
             parent_key = game.clone_of.casefold()
             parent = games_by_name.get(parent_key) or games_by_rom.get(parent_key)
@@ -636,6 +665,7 @@ class GameListWindow(QMainWindow):
 
         for game in games:
             item = QListWidgetItem(game.name)
+            # Los clones van en rojo; los juegos que tienen clones, en azul.
             if game.clone_of:
                 item.setForeground(QColor("red"))
             elif id(game) in parents_with_clones:
@@ -732,6 +762,7 @@ class GameListWindow(QMainWindow):
             self.game_list.setCurrentRow(next_row)
 
     def delete_game(self) -> None:
+        """Mueve la ROM seleccionada a back tras validar y confirmar el borrado."""
         row = self.game_list.currentRow()
         if row < 0:
             return
@@ -795,6 +826,7 @@ class GameListWindow(QMainWindow):
 
 
 def main() -> int:
+    """Crea la aplicación Qt y ejecuta su bucle de eventos."""
     app = QApplication(sys.argv)
     window = GameListWindow()
     window.show()
