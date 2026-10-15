@@ -1,6 +1,7 @@
 # Gestor de juegos para RetroBat
 
-Aplicación de escritorio para abrir un `gamelist.xml`, consultar los datos de sus juegos y mover archivos ROM a una carpeta de respaldo llamada `back`. Permite borrar juegos más rápido que desde el interfaz de Retrobat, muy útil para hacer limpieza de romsets con múltiples versiones de juegos o juegos no deseados.
+Aplicación de escritorio para abrir un `gamelist.xml`, consultar los datos de sus juegos y mover archivos ROM a una carpeta de respaldo llamada `back`. Permite borrar juegos más rápido que desde el interfaz de Retrobat, muy útil para hacer limpieza de romsets con múltiples versiones de juegos o juegos no deseados. 
+Es posible que funcione también con otros entornos de emulación que usen el mismo esquema de xml. Probado también con Knulli.  
 Creado con la asistencia de GitHub Copilot.
 ## Funciones
 
@@ -74,6 +75,7 @@ El botón **Borrar archivo** no elimina la ROM: la mueve a `back`. El programa n
 # RetroBat Game Manager
 
 A desktop application for opening a `gamelist.xml`, checking the data of its games, and moving ROM files to a backup folder named `back`. It allows you to remove games faster than from the RetroBat interface, which is especially useful for cleaning ROM sets with multiple versions of the same game or unwanted titles.
+It may also work with other emulation systems that use the same XML schema. It has also been tested with Knulli.
 Created with GitHub Copilot.
 
 ## Features

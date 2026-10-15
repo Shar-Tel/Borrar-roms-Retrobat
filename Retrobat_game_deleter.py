@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 
 ARCADE_XML_URL = "https://data.spludlow.co.uk/fbneo/arcade.xml"
 
@@ -669,7 +669,7 @@ class GameListWindow(QMainWindow):
             if game.clone_of:
                 item.setForeground(QColor("red"))
             elif id(game) in parents_with_clones:
-                item.setForeground(QColor("blue"))
+                item.setForeground(QColor("green"))
             self.game_list.addItem(item)
         self.set_game_controls_enabled(bool(games))
         self.set_file_window_title()
