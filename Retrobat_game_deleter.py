@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 
 ARCADE_XML_URL = "https://data.spludlow.co.uk/fbneo/arcade.xml"
 
@@ -165,15 +165,23 @@ def order_games_with_clones(games: list[GameEntry]) -> list[GameEntry]:
         if game.rom_path is not None
     }
     children: dict[int, list[GameEntry]] = {}
+    clones_of_missing_parents: dict[str, list[GameEntry]] = {}
     roots = []
 
     for game in games:
         parent_key = game.clone_of.casefold()
         parent = games_by_name.get(parent_key) or games_by_rom.get(parent_key)
-        if parent is None or parent is game:
+        if parent is None and parent_key:
+            clones_of_missing_parents.setdefault(parent_key, []).append(game)
+        elif parent is None or parent is game:
             roots.append(game)
         else:
             children.setdefault(id(parent), []).append(game)
+
+    for clones in clones_of_missing_parents.values():
+        group = sorted(clones, key=lambda item: item.name.casefold())
+        roots.append(group[0])
+        children.setdefault(id(group[0]), []).extend(group[1:])
 
     ordered = []
     visited = set()
