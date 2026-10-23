@@ -2,7 +2,7 @@
 # Creado por: Ximo León
 #Este programa es software libre; puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General de GNU según se publica por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
 #Este programa se distribuye con la esperanza de que sea útil, pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de COMERCIALIZACIÓN o IDONEIDAD PARA UN PROPÓSITO PARTICULAR. Consulta la Licencia Pública General de GNU para más detalles.
-#Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back" junto al XML. 
+#Este programa sirve para borrar roms de una lista de juegos en formato gamelist.xml, moviéndolas a un subdirectorio "back-<sistema>" junto al ejecutable. 
 #Está pensado para ser usado en los directorios de Roms de Retrobat.
 
 """Interfaz para revisar gamelist.xml y mover ROM seleccionadas a una copia."""
@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-__version__ = "1.1.5"
+__version__ = "1.1.6"
 
 ARCADE_XML_URL = "https://data.spludlow.co.uk/fbneo/arcade.xml"
 
@@ -772,7 +772,7 @@ class GameListWindow(QMainWindow):
     def delete_game(self) -> None:
         """Mueve la ROM seleccionada a back tras validar y confirmar el borrado."""
         row = self.game_list.currentRow()
-        if row < 0:
+        if row < 0 or self.xml_path is None:
             return
 
         game = self.games[row]
@@ -803,10 +803,13 @@ class GameListWindow(QMainWindow):
                 return
 
         try:
-            # El respaldo queda junto al XML, aunque el programa se ejecute desde
-            # otro directorio; los sufijos evitan reemplazar archivos existentes.
-            backup_dir = self.xml_path.parent / "back"
-            backup_dir.mkdir(exist_ok=True)
+            app_dir = (
+                Path(sys.executable).resolve().parent
+                if getattr(sys, "frozen", False)
+                else Path(__file__).resolve().parent
+            )
+            backup_dir = app_dir / f"back-{self.xml_path.parent.name}"
+            backup_dir.mkdir(parents=True, exist_ok=True)
             destination = backup_dir / game.rom_path.name
             suffix = 1
             while destination.exists():
